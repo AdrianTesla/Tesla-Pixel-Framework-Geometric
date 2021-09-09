@@ -520,9 +520,177 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c, bool cl
 	}
 }
 
+void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color c1, bool clip)
+{
+	using namespace Tesla;
+	typedef unsigned char uc;
+
+	auto Draw = [&](float x0, float y0, float x1, float y1, const Vec3& vc0, const Vec3 vc1)
+	{
+		const float side = std::max(std::abs(y1 - y0), std::abs(x1 - x0));
+		const int nPixels = (int)side;
+		const float sideInv = 1.0f / side;
+		const float dx = (x1 - x0) * sideInv;
+		const float dy = (y1 - y0) * sideInv;
+		const Vec3 dvc = (vc1 - vc0) * sideInv;
+
+		Vec3 vc = vc0;
+
+		// Prestep
+		float x = x0 + 0.5f;
+		float y = y0 + 0.5f;
+		for (int i = 0; i <= nPixels; i++)
+		{
+			PutPixel((int)x, (int)y, Color((uc)vc.x, (uc)vc.y, (uc)vc.z));
+			x += dx;
+			y += dy;
+			vc += dvc;
+		}
+	};
+
+	Vec3 vc0 = Vec3((uc)c0.GetR(), (uc)c0.GetG(), (uc)c0.GetB());
+	Vec3 vc1 = Vec3((uc)c1.GetR(), (uc)c1.GetG(), (uc)c1.GetB());
+
+	if (clip)
+	{
+		// Clip rectangle (off by -1, lol)
+		static constexpr float xmin = -1.0f;
+		static constexpr float ymin = -1.0f;
+		static constexpr float xmax = (float)Graphics::ScreenWidth - 1.0f;
+		static constexpr float ymax = (float)Graphics::ScreenHeight - 1.0f;
+
+		static constexpr int INSIDE = 0;  // 0000
+		static constexpr int LEFT   = 1;  // 0001
+		static constexpr int RIGHT  = 2;  // 0010
+		static constexpr int BOTTOM = 4;  // 0100
+		static constexpr int TOP    = 8;  // 1000
+
+		typedef int OutCode;
+
+		auto ComputeOutCode = [&](float x, float y)
+		{
+			OutCode code;
+
+			code = INSIDE;          // initialised as being inside of [[clip window]]
+
+			if (x < xmin)           // to the left of clip window
+				code |= LEFT;
+			else if (x > xmax)      // to the right of clip window
+				code |= RIGHT;
+			if (y < ymin)           // below the clip window
+				code |= BOTTOM;
+			else if (y > ymax)      // above the clip window
+				code |= TOP;
+
+			return code;
+		};
+
+		// compute outcodes for P0, P1, and whatever point lies outside the clip rectangle
+		OutCode outcode0 = ComputeOutCode(x0, y0);
+		OutCode outcode1 = ComputeOutCode(x1, y1);
+		bool accept = false;
+
+		while (true)
+		{
+			if (!(outcode0 | outcode1))
+			{
+				// bitwise OR is 0: both points inside window; trivially accept and exit loop
+				accept = true;
+				break;
+			}
+			else if (outcode0 & outcode1)
+			{
+				// bitwise AND is not 0: both points share an outside zone (LEFT, RIGHT, TOP,
+				// or BOTTOM), so both must be outside window; exit loop (accept is false)
+				break;
+			}
+			else
+			{
+				// failed both tests, so calculate the line segment to clip
+				// from an outside point to an intersection with clip edge
+				float x = 0.0f, y = 0.0f;
+				Vec3 vc_clip = { 0.0f,0.0f,0.0f };
+
+				// At least one endpoint is outside the clip rectangle; pick it.
+				OutCode outcodeOut = outcode1 > outcode0 ? outcode1 : outcode0;
+
+				// Now find the intersection point;
+				// use formulas:
+				//   slope = (y1 - y0) / (x1 - x0)
+				//   x = x0 + (1 / slope) * (ym - y0), where ym is ymin or ymax
+				//   y = y0 + slope * (xm - x0), where xm is xmin or xmax
+				// No need to worry about divide-by-zero because, in each case, the
+				// outcode bit being tested guarantees the denominator is non-zero
+				if (outcodeOut & TOP)  // point is above the clip window
+				{
+					const float t = (ymax - y0) / (y1 - y0);
+
+					x = x0 + (x1 - x0) * t;
+					vc_clip = vc0 + (vc1 - vc0) * t;
+					y = ymax;
+				}
+				else if (outcodeOut & BOTTOM)  // point is below the clip window
+				{
+					const float t = (ymin - y0) / (y1 - y0);
+
+					x = x0 + (x1 - x0) * t;
+					vc_clip = vc0 + (vc1 - vc0) * t;
+					y = ymin;
+				}
+				else if (outcodeOut & RIGHT)  // point is to the right of clip window
+				{
+					const float t = (xmax - x0) / (x1 - x0);
+					y = y0 + (y1 - y0) * t;
+					vc_clip = vc0 + (vc1 - vc0) * t;
+					x = xmax;
+				}
+				else if (outcodeOut & LEFT)  // point is to the left of clip window
+				{
+					const float t = (xmin - x0) / (x1 - x0);
+					y = y0 + (y1 - y0) * t;
+					vc_clip = vc0 + (vc1 - vc0) * t;
+					x = xmin;
+				}
+
+				// Now we move outside point to intersection point to clip
+				// and get ready for next pass.
+				if (outcodeOut == outcode0)
+				{
+					x0 = x;
+					y0 = y;
+					vc0 = vc_clip;
+					outcode0 = ComputeOutCode(x0, y0);
+				}
+				else
+				{
+					x1 = x;
+					y1 = y;
+					vc1 = vc_clip;
+					outcode1 = ComputeOutCode(x1, y1);
+				}
+			}
+		}
+
+		if (accept)
+		{
+			// Finally draw the clipped line with AdrianTesla's algorithm
+			Draw(x0, y0, x1, y1, vc0, vc1);
+		}
+	}
+	else
+	{
+		Draw(x0, y0, x1, y1, vc0, vc1);
+	}
+}
+
 void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c, bool clip)
 {
 	DrawLine(p0.x, p0.y, p1.x, p1.y, c, clip);
+}
+
+void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1, bool clip)
+{
+	DrawLine(p0.x, p0.y, p1.x, p1.y, c0, c1, clip);
 }
 
 void Graphics::DrawRect(float left, float right, float top, float bottom, Color c)
@@ -571,19 +739,19 @@ void Graphics::FillRectDim(float topLeftX, float topLeftY, float width, float he
 	FillRect(topLeftX, topLeftX + width, topLeftY, topLeftY + height, c);
 }
 
-void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Color c, float rotation)
+void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Color c, float rotationRad)
 {
 	assert(nSides > 1 && "What is a regular polygon with less than 2 sides?");
 	using namespace Tesla;
 	const float phiStep = twoPI / float(nSides);
-	float phi = phiStep - rotation;
+	float phi = phiStep - rotationRad;
 
 	auto CalculatePosition = [&](float phi)
 	{
 		return Vec2(x + radius * std::cosf(phi), y + radius * std::sinf(phi));
 	};
 
-	Vec2 cur = CalculatePosition(-rotation);
+	Vec2 cur = CalculatePosition(-rotationRad);
 	for (int i = 0; i < nSides; i++)
 	{
 		const Vec2 next = CalculatePosition(phi);
@@ -593,9 +761,65 @@ void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Co
 	}
 }
 
-void Graphics::DrawCircle(float x, float y, float radius, Color c)
+void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c, bool clip)
 {
-	DrawRegularPolygon(x, y, 100,radius, c);
+	if (points.size() > 1)
+	{
+		for (auto i = points.cbegin(), end = std::prev(points.end()); i < end; i++)
+		{
+			DrawLine(*i, *std::next(i), c, clip);
+		}
+	}
+}
+
+void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Color c1, bool clip)
+{
+	if (points.size() > 1)
+	{
+		using namespace Tesla;
+
+		if (points.size() == 2)
+		{
+			DrawLine(points[0], points[1], c0, c1, clip);
+		}
+		else
+		{
+			const Vec3 vc0 = Vec3(float(c0.GetR()), float(c0.GetG()), float(c0.GetB()));
+			const Vec3 vc1 = Vec3(float(c1.GetR()), float(c1.GetG()), float(c1.GetB()));
+
+			auto col = [](const Vec3& vc)
+			{
+				typedef unsigned char uc;
+				return Color((uc)vc.x, (uc)vc.y, (uc)vc.z);
+			};
+
+			const Vec3 dvc = (vc1 - vc0) / float(points.size() - 1);
+
+			Vec3 vc_cur = vc0;
+			Vec3 vc_next = vc0 + dvc;
+			for (auto i = points.cbegin(), end = std::prev(points.end()); i < end; i++)
+			{
+				DrawLine(*i, *std::next(i), col(vc_cur), col(vc_next), clip);
+
+				vc_cur = vc_next;
+				vc_next += dvc;
+			}
+		}
+	}
+}
+
+void Graphics::DrawClosedPolyline(const std::vector<Tesla::Vec2>& points, Color c, bool clip)
+{
+	if (points.size() > 1)
+	{
+		DrawPolyline(points, c, clip);
+		DrawLine(*std::prev(points.end()), *points.begin(), c, clip);
+	}
+}
+
+void Graphics::DrawCircle(float xc, float yc, float radius, Color c)
+{
+	DrawEllipse(xc, yc, radius, radius, c);
 }
 
 void Graphics::DrawCircle(const Tesla::Vec2& center, float radius, Color c)
@@ -605,17 +829,51 @@ void Graphics::DrawCircle(const Tesla::Vec2& center, float radius, Color c)
 
 void Graphics::FillCircle(float xc, float yc, float radius, Color c)
 {
-	using namespace Tesla;
-	const int yStart = std::max((int)(yc - radius + 0.5f), 0);
-	const int yEnd   = std::min((int)(yc + radius + 0.5f), int(ScreenHeight - 1));
-	const float rSq  = sq(radius);
+	FillEllipse(xc, yc, radius, radius, c);
+}
 
-	for(int y = yStart; y <= yEnd; y++)
+void Graphics::FillCircle(const Tesla::Vec2& center, float radius, Color c)
+{
+	FillCircle(center.x, center.y, radius, c);
+}
+
+void Graphics::DrawEllipse(float xc, float yc, float ra, float rb, Color c)
+{
+	using namespace Tesla;
+
+	static constexpr int nSides = 100;
+	const float phiStep = twoPI / float(nSides);
+	float phi = phiStep;
+
+	auto CalculatePosition = [&](float phi)
 	{
-		const float arg = rSq - sq(static_cast<float>(y) - yc + 0.5f);
+		return Vec2(xc + ra * std::cosf(phi), yc + rb * std::sinf(phi));
+	};
+
+	Vec2 cur = CalculatePosition(0.0f);
+	for (int i = 0; i < nSides; i++)
+	{
+		const Vec2 next = CalculatePosition(phi);
+		DrawLine(cur, next, c, true);
+		cur = next;
+		phi += phiStep;
+	}
+}
+
+void Graphics::FillEllipse(float xc, float yc, float ra, float rb, Color c)
+{
+	using namespace Tesla;
+	const int yStart = std::max((int)(yc - rb + 0.5f), 0);
+	const int yEnd   = std::min((int)(yc + rb + 0.5f), int(ScreenHeight - 1));
+	const float raSq = sq(ra);
+	const float rbSqInv = 1.0f / sq(rb);
+
+	for (int y = yStart; y <= yEnd; y++)
+	{
+		const float arg = 1.0f - rbSqInv * sq(static_cast<float>(y) - yc + 0.5f);
 		if (arg >= 0)
 		{
-			const float x_displacement = std::sqrtf(arg);
+			const float x_displacement = ra * std::sqrtf(arg);
 
 			const int xStart = std::max(int(xc - x_displacement + 0.5f), 0);
 			const int xEnd   = std::min(int(xc + x_displacement + 0.5f), int(ScreenWidth - 1));
@@ -626,11 +884,6 @@ void Graphics::FillCircle(float xc, float yc, float radius, Color c)
 			}
 		}
 	}
-}
-
-void Graphics::FillCircle(const Tesla::Vec2& center, float radius, Color c)
-{
-	FillCircle(center.x, center.y, radius, c);
 }
 
 void Graphics::DrawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c, bool clip)
@@ -705,7 +958,7 @@ void Graphics::FillTriangle(float x0, float y0, float x1, float y1, float x2, fl
 	FillTriangle({ x0,y0 }, { x1,y1 }, { x2,y2 }, c);
 }
 
-void Graphics::FillTriangleGradient(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c0, Color c1, Color c2)
+void Graphics::FillTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c0, Color c1, Color c2)
 {
 	using namespace Tesla;
 
@@ -773,9 +1026,9 @@ void Graphics::FillTriangleGradient(const Tesla::Vec2& v0, const Tesla::Vec2& v1
 	}
 }
 
-void Graphics::FillTriangleGradient(const Tesla::Vec2& v0, Color c0, const Tesla::Vec2& v1, Color c1, const Tesla::Vec2& v2, Color c2)
+void Graphics::FillTriangle(const Tesla::Vec2& v0, Color c0, const Tesla::Vec2& v1, Color c1, const Tesla::Vec2& v2, Color c2)
 {
-	FillTriangleGradient(v0, v1, v2, c0, c1, c2);
+	FillTriangle(v0, v1, v2, c0, c1, c2);
 }
 
 void Graphics::FillTriangleTex(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, const Tesla::Vec2& uv0, const Tesla::Vec2& uv1, const Tesla::Vec2& uv2, const Surface& tex)
@@ -838,6 +1091,79 @@ void Graphics::FillTriangleTex(const Tesla::Vec2& v0, const Tesla::Vec2& v1, con
 		w1_row -= s20.x;
 		w2_row -= s01.x;
 		uv_row -= duvx;
+	}
+}
+
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl, const Tesla::Vec2& p1ctrl, const Tesla::Vec2& p1, Color c)
+{
+	// Barozzi rules. Period.
+	// 1 = ((1 - t) + t)^3 =
+	// 1 = (1 - t)^3 + 3(1 - t)^2 t + 3(1 - t) t^2 + t^3
+	// 1 = b0(t) + b1(t) + b2(t) + b3(t)
+	// b0(t), b1(t), b2(t), b3(t) sono i polinomi di Bernstein
+	// Una parametrizzazione della curva di Bezier è data da
+	// p(t) = b0(t) * p0 + b1(t) * p0ctrl + b2(t) * p1ctrl + b3(t) * p1;
+
+	using namespace Tesla;
+
+	// How many?
+	const int nPoints = 100;
+	float t = 0.0f;
+	const float dt = 1.0f / float(nPoints);
+
+	// Not fully optimized, but sexy as hell
+	Vec2 cur = p0;
+	for (int i = 0; i <= nPoints; i++)
+	{
+		// Bernstein coefficients
+		const float b0 = cube(1.0f - t);
+		const float b1 = 3.0f * sq(1.0f - t) * t;
+		const float b2 = 3.0f * (1.0f - t) * sq(t);
+		const float b3 = cube(t);
+
+		// Interpolate the points with the Bernstein coefficients
+		const Vec2 next = p0 * b0 + p0ctrl * b1 + p1ctrl * b2 + p1 * b3;
+
+		DrawLine(cur, next, c);
+		cur = next;
+		t += dt;
+	}
+}
+
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl, const Tesla::Vec2& p1ctrl, const Tesla::Vec2& p1, Color c0, Color c1)
+{
+	using namespace Tesla;
+
+	// How many?
+	const int nPoints = 100;
+
+	// Vec3 colors for easy interpolation
+	const Vec3 vc0 = { (float)c0.GetR(),(float)c0.GetG(),(float)c0.GetB() };
+	const Vec3 vc1 = { (float)c1.GetR(),(float)c1.GetG(),(float)c1.GetB() };
+	
+	const float dt = 1.0f / float(nPoints);
+	const Vec3 dvc = (vc1 - vc0) * dt;
+
+	float t = 0.0f;
+	Vec3 vc = vc0;
+
+	// Not fully optimized, but sexy as hell
+	Vec2 cur = p0;
+	for (int i = 0; i <= nPoints; i++)
+	{
+		// Bernstain coefficients
+		const float b0 = cube(1.0f - t);
+		const float b1 = 3.0f * sq(1.0f - t) * t;
+		const float b2 = 3.0f * (1.0f - t) * sq(t);
+		const float b3 = cube(t);
+
+		// Interpolate the points with the Bernstain coefficients
+		const Vec2 next = p0 * b0 + p0ctrl * b1 + p1ctrl * b2 + p1 * b3;
+
+		DrawLine(cur, next, Color((unsigned char)vc.x, (unsigned char)vc.y, (unsigned char)vc.z));
+		cur = next;
+		t += dt;
+		vc += dvc;
 	}
 }
 

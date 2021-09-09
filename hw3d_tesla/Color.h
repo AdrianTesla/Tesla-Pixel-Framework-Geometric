@@ -1,4 +1,6 @@
 #pragma once
+#include <cmath>
+#include <assert.h>
 
 // Surface is just a buffer of Colors (dword-style)
 class Color
@@ -38,6 +40,65 @@ public:
     {
         return Color((unsigned char)(rand() % 255u), (unsigned char)(rand() % 255u), (unsigned char)(rand() % 255u));
     }
+    static constexpr Color FromRGB(float r, float g, float b)
+    {
+        return Color((unsigned char)(255.0f * r), (unsigned char)(255.0f * g), (unsigned char)(255.0f * b));
+    }
+    static Color FromHSV(float hueRad, float saturation = 1.0f, float value = 1.0f)
+    {
+        static constexpr float PI = 3.14159265358979f;
+        static constexpr float twoPI = 2.0f * PI;
+
+        while (hueRad < 0.0f)
+        {
+            hueRad += twoPI;
+        }
+        float hue = std::fmodf(hueRad * (180.0f / PI), 360.0f);
+
+        assert(hue >= 0.0f);
+        assert(hue < 360.0f);
+
+        const float c = value * saturation;
+        const float magic = 1.0f - std::abs(std::fmodf(hue / 60.0f, 2.0f) - 1.0f);
+        const float x = c * magic;
+        const float m = value - c;
+
+        struct Float3
+        {
+            float x = 0.0f;
+            float y = 0.0f;
+            float z = 0.0f;
+        };
+        Float3 out;
+
+        if (0.0f <= hue && hue < 60.0f)
+        {
+            out = { c,x,0.0f };
+        }
+        else if (60.0f <= hue && hue < 120.0f)
+        {
+            out = { x,c,0.0f };
+        }
+        else if (120.0f <= hue && hue < 180.0f)
+        {
+            out = { 0.0f,c,x };
+        }
+        else if (180.0f <= hue && hue < 240.0f)
+        {
+            out = { 0.0f,x,c };
+        }
+        else if (240.0f <= hue && hue < 300.0f)
+        {
+            out = { x,0.0f,c };
+        }
+        else if (300.0f <= hue && hue <= 360.0f)
+        {
+            out = { c,0.0f,x };
+        }
+
+        return Color((unsigned char)(255.0f * (out.x + m)), (unsigned char)(255.0f * (out.y + m)), (unsigned char)(255.0f * (out.z + m)));
+    }
+
 public:
     Color& operator = (Color color) noexcept
     {

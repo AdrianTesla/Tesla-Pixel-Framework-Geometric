@@ -22,6 +22,12 @@ namespace Tesla
 		return arg * arg;
 	}
 
+	template<typename Type>
+	static constexpr Type cube(const Type& arg)
+	{
+		return arg * arg * arg;
+	}
+
 	template<typename Float3>
 	static constexpr Float3 FromHSV(float hueRad, float saturation = 1.0f, float value = 1.0f)
 	{
