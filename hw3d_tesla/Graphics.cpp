@@ -770,7 +770,7 @@ void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Co
 	for (int i = 0; i < nSides; i++)
 	{
 		const Vec2 next = CalculatePosition(phi);
-		DrawLine(cur, next, c, true);
+		DrawLine(cur, next, c);
 		cur = next;
 		phi += phiStep;
 	}
@@ -858,6 +858,7 @@ void Graphics::DrawEllipse(float xc, float yc, float ra, float rb, Color c)
 
 	static constexpr int nSides = 100;
 	const float phiStep = twoPI / float(nSides);
+	
 	float phi = phiStep;
 
 	auto CalculatePosition = [&](float phi)
@@ -869,10 +870,15 @@ void Graphics::DrawEllipse(float xc, float yc, float ra, float rb, Color c)
 	for (int i = 0; i < nSides; i++)
 	{
 		const Vec2 next = CalculatePosition(phi);
-		DrawLine(cur, next, c, true);
+		DrawLine(cur, next, c);
 		cur = next;
 		phi += phiStep;
 	}
+}
+
+void Graphics::DrawEllipse(const Tesla::Vec2& center, float ra, float rb, Color c)
+{
+	DrawEllipse(center.x, center.y, ra, rb, c);
 }
 
 void Graphics::FillEllipse(float xc, float yc, float ra, float rb, Color c)
@@ -899,6 +905,11 @@ void Graphics::FillEllipse(float xc, float yc, float ra, float rb, Color c)
 			}
 		}
 	}
+}
+
+void Graphics::FillEllipse(const Tesla::Vec2& center, float ra, float rb, Color c)
+{
+	FillEllipse(center.x, center.y, ra, rb, c);
 }
 
 void Graphics::DrawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c)
@@ -1241,7 +1252,7 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, con
 	}
 }
 
-void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c0, Color c1)
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c0, Color c3)
 {
 	// CUBIC VERSION, COLOR INTERPOLATION
 	//
@@ -1260,10 +1271,10 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, con
 
 	// Vec3 colors for easy interpolation
 	const Vec3 vc0 = { (float)c0.GetR(),(float)c0.GetG(),(float)c0.GetB() };
-	const Vec3 vc1 = { (float)c1.GetR(),(float)c1.GetG(),(float)c1.GetB() };
+	const Vec3 vc3 = { (float)c3.GetR(),(float)c3.GetG(),(float)c3.GetB() };
 	
 	const float dt = 1.0f / float(nPoints);
-	const Vec3 dvc = (vc1 - vc0) * dt;
+	const Vec3 dvc = (vc3 - vc0) * dt;
 
 	float t = 0.0f;
 	Vec3 vc = vc0;
