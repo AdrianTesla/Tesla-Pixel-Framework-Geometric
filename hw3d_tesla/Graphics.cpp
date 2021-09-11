@@ -355,6 +355,21 @@ bool Graphics::IsImGuiEnabled() const noexcept
 	return imGuiEnabled;
 }
 
+void Graphics::EnableClipping() noexcept
+{
+	clip = true;
+}
+
+void Graphics::DisableClipping() noexcept
+{
+	clip = false;
+}
+
+bool Graphics::IsClippingEnabled() const noexcept
+{
+	return clip;
+}
+
 Color* Graphics::GetFramebufferPtr() const noexcept
 {
 	return pBuffer.GetBufferPtr();
@@ -380,7 +395,7 @@ void Graphics::PutPixel(int x, int y, unsigned char r, unsigned char g, unsigned
 	PutPixel(x, y, Color(r, g, b));
 }
 
-void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c, bool clip)
+void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c)
 {
 	auto Draw = [&](float x0, float y0, float x1, float y1)
 	{
@@ -520,7 +535,7 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c, bool cl
 	}
 }
 
-void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color c1, bool clip)
+void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color c1)
 {
 	using namespace Tesla;
 	typedef unsigned char uc;
@@ -560,10 +575,10 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color 
 		static constexpr float ymax = (float)Graphics::ScreenHeight - 1.0f;
 
 		static constexpr int INSIDE = 0;  // 0000
-		static constexpr int LEFT   = 1;  // 0001
-		static constexpr int RIGHT  = 2;  // 0010
+		static constexpr int LEFT = 1;  // 0001
+		static constexpr int RIGHT = 2;  // 0010
 		static constexpr int BOTTOM = 4;  // 0100
-		static constexpr int TOP    = 8;  // 1000
+		static constexpr int TOP = 8;  // 1000
 
 		typedef int OutCode;
 
@@ -683,14 +698,14 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color 
 	}
 }
 
-void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c, bool clip)
+void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c)
 {
-	DrawLine(p0.x, p0.y, p1.x, p1.y, c, clip);
+	DrawLine(p0.x, p0.y, p1.x, p1.y, c);
 }
 
-void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1, bool clip)
+void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1)
 {
-	DrawLine(p0.x, p0.y, p1.x, p1.y, c0, c1, clip);
+	DrawLine(p0.x, p0.y, p1.x, p1.y, c0, c1);
 }
 
 void Graphics::DrawRect(float left, float right, float top, float bottom, Color c)
@@ -761,18 +776,18 @@ void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Co
 	}
 }
 
-void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c, bool clip)
+void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c)
 {
 	if (points.size() > 1)
 	{
 		for (auto i = points.cbegin(), end = std::prev(points.end()); i < end; i++)
 		{
-			DrawLine(*i, *std::next(i), c, clip);
+			DrawLine(*i, *std::next(i), c);
 		}
 	}
 }
 
-void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Color c1, bool clip)
+void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Color c1)
 {
 	if (points.size() > 1)
 	{
@@ -780,7 +795,7 @@ void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Co
 
 		if (points.size() == 2)
 		{
-			DrawLine(points[0], points[1], c0, c1, clip);
+			DrawLine(points[0], points[1], c0, c1);
 		}
 		else
 		{
@@ -799,7 +814,7 @@ void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Co
 			Vec3 vc_next = vc0 + dvc;
 			for (auto i = points.cbegin(), end = std::prev(points.end()); i < end; i++)
 			{
-				DrawLine(*i, *std::next(i), col(vc_cur), col(vc_next), clip);
+				DrawLine(*i, *std::next(i), col(vc_cur), col(vc_next));
 
 				vc_cur = vc_next;
 				vc_next += dvc;
@@ -808,12 +823,12 @@ void Graphics::DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c0, Co
 	}
 }
 
-void Graphics::DrawClosedPolyline(const std::vector<Tesla::Vec2>& points, Color c, bool clip)
+void Graphics::DrawClosedPolyline(const std::vector<Tesla::Vec2>& points, Color c)
 {
 	if (points.size() > 1)
 	{
-		DrawPolyline(points, c, clip);
-		DrawLine(*std::prev(points.end()), *points.begin(), c, clip);
+		DrawPolyline(points, c);
+		DrawLine(*std::prev(points.end()), *points.begin(), c);
 	}
 }
 
@@ -886,16 +901,28 @@ void Graphics::FillEllipse(float xc, float yc, float ra, float rb, Color c)
 	}
 }
 
-void Graphics::DrawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c, bool clip)
+void Graphics::DrawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c)
 {
-	DrawTriangle({ x0,y0 }, { x1,y1 }, { x1,x2 }, c, clip);
+	DrawTriangle({ x0,y0 }, { x1,y1 }, { x1,x2 }, c);
 }
 
-void Graphics::DrawTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c, bool clip)
+void Graphics::DrawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c0, Color c1, Color c2)
 {
-	DrawLine(v0, v1, c, clip);
-	DrawLine(v1, v2, c, clip);
-	DrawLine(v2, v0, c, clip);
+	DrawLine(x0, y0, x1, y1, c0, c1);
+	DrawLine(x1, y1, x2, y2, c1, c2);
+	DrawLine(x2, y2, x0, y0, c2, c0);
+}
+
+void Graphics::DrawTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c)
+{
+	DrawLine(v0, v1, c);
+	DrawLine(v1, v2, c);
+	DrawLine(v2, v0, c);
+}
+
+void Graphics::DrawTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c0, Color c1, Color c2)
+{
+	DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c0, c1, c2);
 }
 
 void Graphics::FillTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const Tesla::Vec2& v2, Color c)
@@ -953,7 +980,7 @@ void Graphics::FillTriangle(const Tesla::Vec2& v0, const Tesla::Vec2& v1, const 
 	}
 }
 
-void Graphics::FillTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c, bool clip)
+void Graphics::FillTriangle(float x0, float y0, float x1, float y1, float x2, float y2, Color c)
 {
 	FillTriangle({ x0,y0 }, { x1,y1 }, { x2,y2 }, c);
 }
@@ -1094,15 +1121,99 @@ void Graphics::FillTriangleTex(const Tesla::Vec2& v0, const Tesla::Vec2& v1, con
 	}
 }
 
-void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl, const Tesla::Vec2& p1ctrl, const Tesla::Vec2& p1, Color c)
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, Color c)
 {
+	// QUADRATIC VERSION
+	// 
+	// Barozzi rules. Period.
+	// 1 = ((1 - t) + t)^2 =
+	// 1 = (1 - t)^2 + 2(1 - t) t + t^2
+	// 1 = b0(t) + b1(t) + b2(t)
+	// b0(t), b1(t), b2(t) sono i polinomi di Bernstein
+	// Una parametrizzazione della curva di Bezier è data da
+	// p(t) = b0(t) * p0 + b1(t) * p1 + b2(t) * p2
+
+	using namespace Tesla;
+
+	// How many?
+	const int nPoints = 100;
+	float t = 0.0f;
+	const float dt = 1.0f / float(nPoints);
+
+	// Not fully optimized, but sexy as hell
+	Vec2 cur = p0;
+	for (int i = 0; i <= nPoints; i++)
+	{
+		// Bernstein coefficients
+		const float b0 = sq(1.0f - t);
+		const float b1 = 2.0f * (1.0f - t) * t;
+		const float b2 = sq(t);
+
+		// Interpolate the points with the Bernstein coefficients
+		const Vec2 next = p0 * b0 + p1 * b1 + p2 * b2;
+
+		DrawLine(cur, next, c);
+		cur = next;
+		t += dt;
+	}
+}
+
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, Color c0, Color c2)
+{
+	// QUADRATIC VERSION, COLOR INTERPOLATION
+	// 
+	// Barozzi rules. Period.
+	// 1 = ((1 - t) + t)^2 =
+	// 1 = (1 - t)^2 + 2(1 - t) t + t^2
+	// 1 = b0(t) + b1(t) + b2(t)
+	// b0(t), b1(t), b2(t) sono i polinomi di Bernstein
+	// Una parametrizzazione della curva di Bezier è data da
+	// p(t) = b0(t) * p0 + b1(t) * p1 + b2(t) * p2
+
+	using namespace Tesla;
+
+	// How many?
+	const int nPoints = 100;
+	float t = 0.0f;
+	const float dt = 1.0f / float(nPoints);
+
+	// Use vector of floats for easy interpolation
+	const Vec3 vc0 = { (float)c0.GetR(),(float)c0.GetG(),(float)c0.GetB() };
+	const Vec3 vc2 = { (float)c2.GetR(),(float)c2.GetG(),(float)c2.GetB() };
+	const Vec3 dvc = (vc2 - vc0) * dt;
+	Vec3 vc = vc0;
+
+	// Not fully optimized, but sexy as hell
+	Vec2 cur = p0;
+	for (int i = 0; i <= nPoints; i++)
+	{
+		// Bernstein coefficients
+		const float b0 = sq(1.0f - t);
+		const float b1 = 2.0f * (1.0f - t) * t;
+		const float b2 = sq(t);
+
+		// Interpolate the points with the Bernstein coefficients
+		const Vec2 next = p0 * b0 + p1 * b1 + p2 * b2;
+
+		DrawLine(cur, next, Color((unsigned char)vc.x, (unsigned char)vc.y, (unsigned char)vc.z));
+		cur = next;
+
+		t  += dt;
+		vc += dvc;
+	}
+}
+
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c)
+{
+	// CUBIC VERSION
+	//
 	// Barozzi rules. Period.
 	// 1 = ((1 - t) + t)^3 =
 	// 1 = (1 - t)^3 + 3(1 - t)^2 t + 3(1 - t) t^2 + t^3
 	// 1 = b0(t) + b1(t) + b2(t) + b3(t)
 	// b0(t), b1(t), b2(t), b3(t) sono i polinomi di Bernstein
 	// Una parametrizzazione della curva di Bezier è data da
-	// p(t) = b0(t) * p0 + b1(t) * p0ctrl + b2(t) * p1ctrl + b3(t) * p1;
+	// p(t) = b0(t) * p0 + b1(t) * p1 + b2(t) * p2 + b3(t) * p3;
 
 	using namespace Tesla;
 
@@ -1122,7 +1233,7 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl,
 		const float b3 = cube(t);
 
 		// Interpolate the points with the Bernstein coefficients
-		const Vec2 next = p0 * b0 + p0ctrl * b1 + p1ctrl * b2 + p1 * b3;
+		const Vec2 next = p0 * b0 + p1 * b1 + p2 * b2 + p3 * b3;
 
 		DrawLine(cur, next, c);
 		cur = next;
@@ -1130,8 +1241,18 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl,
 	}
 }
 
-void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl, const Tesla::Vec2& p1ctrl, const Tesla::Vec2& p1, Color c0, Color c1)
+void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c0, Color c1)
 {
+	// CUBIC VERSION, COLOR INTERPOLATION
+	//
+	// Barozzi rules. Period.
+	// 1 = ((1 - t) + t)^3 =
+	// 1 = (1 - t)^3 + 3(1 - t)^2 t + 3(1 - t) t^2 + t^3
+	// 1 = b0(t) + b1(t) + b2(t) + b3(t)
+	// b0(t), b1(t), b2(t), b3(t) sono i polinomi di Bernstein
+	// Una parametrizzazione della curva di Bezier è data da
+	// p(t) = b0(t) * p0 + b1(t) * p1 + b2(t) * p2 + b3(t) * p3;
+
 	using namespace Tesla;
 
 	// How many?
@@ -1158,7 +1279,7 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p0ctrl,
 		const float b3 = cube(t);
 
 		// Interpolate the points with the Bernstain coefficients
-		const Vec2 next = p0 * b0 + p0ctrl * b1 + p1ctrl * b2 + p1 * b3;
+		const Vec2 next = p0 * b0 + p1 * b1 + p2 * b2 + p3 * b3;
 
 		DrawLine(cur, next, Color((unsigned char)vc.x, (unsigned char)vc.y, (unsigned char)vc.z));
 		cur = next;

@@ -160,7 +160,12 @@ namespace Tesla
 	{
 	public:
 		Generic_Vec2() = default;
-		Generic_Vec2(T x, T y)
+		//Generic_Vec2(T x, T y)
+		//	:
+		//	x(x),
+		//	y(y)
+		//{}
+		constexpr Generic_Vec2(T x, T y)
 			:
 			x(x),
 			y(y)
@@ -293,7 +298,7 @@ namespace Tesla
 	{
 	public:
 		Generic_Vec3() = default;
-		Generic_Vec3(T x, T y, T z)
+		constexpr Generic_Vec3(T x, T y, T z)
 			:
 			Generic_Vec2<T>(x, y),
 			z(z)
@@ -479,7 +484,7 @@ namespace Tesla
 	{
 	public:
 		Generic_Vec4() = default;
-		Generic_Vec4(T x, T y, T z, T w)
+		constexpr Generic_Vec4(T x, T y, T z, T w)
 			:
 			Generic_Vec3<T>(x, y, z),
 			w(w)

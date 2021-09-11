@@ -1,6 +1,7 @@
 #pragma once
 #include <queue>
 #include <optional>
+#include "Tesla.h"
 
 class Mouse
 {
@@ -92,13 +93,13 @@ public:
 	Mouse() = default;
 	Mouse(const Mouse&) = delete;
 	Mouse& operator = (const Mouse&) = delete;
-	std::pair<int, int> GetPos() const noexcept;
-	std::pair<float, float> GetPosF() const noexcept;
 	std::optional<RawDelta> ReadRawDelta() noexcept;
 	int GetPosX() const noexcept;
 	int GetPosY() const noexcept;
 	float GetPosXf() const noexcept;
 	float GetPosYf() const noexcept;
+	Tesla::Vec2 GetPosF() const noexcept;
+	Tesla::Vei2 GetPos() const noexcept;
 	bool LeftIsPressed() const noexcept;
 	bool RightIsPressed() const noexcept;
 	bool IsInWindow() const noexcept;

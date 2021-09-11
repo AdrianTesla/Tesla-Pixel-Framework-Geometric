@@ -2,16 +2,6 @@
 #include "Mouse.h"
 #include "Graphics.h"
 
-std::pair<int, int> Mouse::GetPos() const noexcept
-{
-	return { GetPosX(),GetPosY() };
-}
-
-std::pair<float, float> Mouse::GetPosF() const noexcept
-{
-	return { GetPosXf(),GetPosYf() };
-}
-
 std::optional<Mouse::RawDelta> Mouse::ReadRawDelta() noexcept
 {
 	if (rawBuffer.empty())
@@ -41,6 +31,16 @@ float Mouse::GetPosXf() const noexcept
 float Mouse::GetPosYf() const noexcept
 {
 	return float(y) / float(Graphics::PixelSize);
+}
+
+Tesla::Vec2 Mouse::GetPosF() const noexcept
+{
+	return { GetPosXf(),GetPosYf() };
+}
+
+Tesla::Vei2 Mouse::GetPos() const noexcept
+{
+	return { GetPosX(),GetPosY() };
 }
 
 bool Mouse::LeftIsPressed() const noexcept
