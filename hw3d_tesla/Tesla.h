@@ -17,6 +17,19 @@ namespace Tesla
 	static constexpr float halfPI = static_cast<float>(halfPI_D);
 
 	template<typename Type>
+	static constexpr Type factorial(const Type n)
+	{
+		if (n == static_cast<Type>(0))
+		{
+			return static_cast<Type>(1);
+		}
+		else
+		{
+			return n * factorial(n - static_cast<Type>(1));
+		}
+	}
+
+	template<typename Type>
 	static constexpr Type sq(const Type& arg)
 	{
 		return arg * arg;
@@ -26,6 +39,13 @@ namespace Tesla
 	static constexpr Type cube(const Type& arg)
 	{
 		return arg * arg * arg;
+	}
+
+	template<typename Type>
+	static constexpr Type binomial(const Type n, const Type k)
+	{
+		assert(n >= k && "what kind of binomial coefficient is this, lol?");
+		return factorial<Type>(n) / (factorial<Type>(k) * factorial<Type>(n - k));
 	}
 
 	template<typename Float3>
