@@ -109,6 +109,8 @@ public:
 	void DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, Color c0, Color c2);
 	void DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c);
 	void DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, const Tesla::Vec2& p2, const Tesla::Vec2& p3, Color c0, Color c3);
+	void DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c);
+	void DrawClosedSPline(const std::vector<Tesla::Vec2>& points, Color c);
 	std::string GetFrameStatistics() const noexcept;
 private:
 	void UpdateFrameStatistics() noexcept;
@@ -134,8 +136,8 @@ private:
 public:
 	// The actual window dimensions will be ScreenWidth * PixelSize and ScreenHeight * PixelSize
 	static constexpr unsigned int PixelSize     = 1u;
-	static constexpr unsigned int ScreenWidth   = 800u;
-	static constexpr unsigned int ScreenHeight  = 600u;
+	static constexpr unsigned int ScreenWidth   = 1280u;
+	static constexpr unsigned int ScreenHeight  = 720u;
 public:
 	// Useful global constants
 	static constexpr float ScreenWidthF         = static_cast<float>(ScreenWidth);

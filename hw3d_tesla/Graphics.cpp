@@ -1299,6 +1299,91 @@ void Graphics::DrawBezierCurve(const Tesla::Vec2& p0, const Tesla::Vec2& p1, con
 	}
 }
 
+void Graphics::DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c)
+{
+	// HIGHLY INEFFICIENT, WE HAVE TO IMPROVE.
+	// This is a cubic SPLine passing through every point
+	using namespace Tesla;
+
+	const int nPoints = points.size();
+	if(nPoints >= 2)
+	{
+		std::vector<Vec2> p;
+
+		const Vec2 first = points[0ui64];
+		const Vec2 last = points[nPoints - 1ui64];
+
+		p.push_back(first);
+		for (auto& v : points)
+		{
+			p.push_back(v);
+		}
+		p.push_back(last);
+
+		const int nSegments = nPoints - 1;
+		for (int i = 0; i < nSegments; i++)
+		{
+			static constexpr int nSubd = 30;
+			float t = 0.0f;
+			const float dt = 1.0f / static_cast<float>(nSubd);
+			Vec2 cur = p[1ui64 + i];
+			for (int j = 0; j <= nSubd; j++)
+			{
+				const float b0 = -t * sq(1.0f - t);
+				const float b1 = (t - 1.0f) * (3.0f * sq(t) - 2.0f * t - 2);
+				const float b2 = -3.0f * cube(t) + 4.0f * sq(t) + t;
+				const float b3 = cube(t) - sq(t);
+
+				const Vec2 next = 0.5f * (p[i] * b0 + p[i + 1ui64] * b1 + p[i + 2ui64] * b2 + p[i + 3ui64] * b3);
+
+				DrawLine(cur, next, c);
+
+				t += dt;
+				cur = next;
+			}
+		}
+	}
+}
+
+void Graphics::DrawClosedSPline(const std::vector<Tesla::Vec2>& points, Color c)
+{
+	// HIGHLY INEFFICIENT, WE HAVE TO IMPROVE.
+	// This is a cubic SPLine passing through every point in points and closing
+	using namespace Tesla;
+
+	const int nPoints = points.size();
+	if(nPoints >= 2)
+	{
+		std::vector<Vec2> p;
+
+		const Vec2 first = points[0ui64];
+		const Vec2 last  = points[nPoints - 1ui64];
+
+		const int nSegments = nPoints - 1;
+		for (int i = 0; i < nSegments; i++)
+		{
+			static constexpr int nSubd = 50;
+			float t = 0.0f;
+			const float dt = 1.0f / static_cast<float>(nSubd);
+			Vec2 cur = p[1ui64 + i];
+			for (int j = 0; j <= nSubd; j++)
+			{
+				const float b0 = -cube(t) + 2.0f * sq(t) - t;
+				const float b1 = 3.0f * cube(t)- 5.0f * sq(t) + 2.0f;
+				const float b2 = -3.0f * cube(t) + 4.0f * sq(t) + t;
+				const float b3 = cube(t) - sq(t);
+
+				const Vec2 next = 0.5f * (p[i] * b0 + p[i + 1ui64] * b1 + p[i + 2ui64] * b2 + p[i + 3ui64] * b3);
+
+				DrawLine(cur, next, c);
+
+				t += dt;
+				cur = next;
+			}
+		}
+	}
+}
+
 Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMsgs) noexcept
 	:
 	Exception(line, file),
