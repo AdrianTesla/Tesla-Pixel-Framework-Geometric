@@ -81,7 +81,12 @@ public:
 	void DrawRect(float left, float right, float top, float bottom, Color c);
 	void DrawRect(const Tesla::Vec2& topLeft, float width, float height, Color c);
 	void DrawRectDim(float topLeftX, float topLeftY, float width, float height, Color c);
-	void DrawRegularPolygon(float x, float y, int nSides, float radius, Color c, float rotationRad = 0.0f);
+	void DrawRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c);
+	void FillRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c);
+	void FillRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c_int, Color c_ext, bool rainbowMode = false);
+	void DrawRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c);
+	void FillRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c);
+	void FillRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c_int, Color c_ext, bool rainbowMode = false);
 	void DrawPolyline(const std::vector<Tesla::Vec2>& points, Color c);
 	void DrawPolyline(const std::vector<Tesla::Vec2>& points, Color cStart, Color cEnd);
 	void DrawClosedPolyline(const std::vector<Tesla::Vec2>& points, Color c);

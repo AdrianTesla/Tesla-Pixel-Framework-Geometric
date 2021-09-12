@@ -754,7 +754,7 @@ void Graphics::FillRectDim(float topLeftX, float topLeftY, float width, float he
 	FillRect(topLeftX, topLeftX + width, topLeftY, topLeftY + height, c);
 }
 
-void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Color c, float rotationRad)
+void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c)
 {
 	assert(nSides > 1 && "What is a regular polygon with less than 2 sides?");
 	using namespace Tesla;
@@ -773,6 +773,78 @@ void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, Co
 		DrawLine(cur, next, c);
 		cur = next;
 		phi += phiStep;
+	}
+}
+
+void Graphics::FillRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c)
+{
+	FillRegularPolygon({ x,y }, nSides, radius, rotationRad, c);
+}
+
+void Graphics::FillRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c_int, Color c_ext, bool rainbowMode)
+{
+	FillRegularPolygon({ x,y }, nSides, radius, rotationRad, c_int, c_ext, rainbowMode);
+}
+
+void Graphics::DrawRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c)
+{
+	DrawRegularPolygon(center.x, center.y, nSides, radius, rotationRad, c);
+}
+
+void Graphics::FillRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c)
+{
+	assert(nSides > 2 && "What is a regular polygon with less than 3 sides?");
+	using namespace Tesla;
+	const float phiStep = twoPI / float(nSides);
+	float phi = phiStep - rotationRad;
+
+	auto CalculatePosition = [&](float phi)
+	{
+		return center + radius * Vec2(std::cosf(phi), std::sinf(phi));
+	};
+
+	Vec2 cur = CalculatePosition(-rotationRad);
+	for (int i = 0; i < nSides; i++)
+	{
+		const Vec2 next = CalculatePosition(phi);
+		FillTriangle(center, cur, next, c);
+		cur = next;
+		phi += phiStep;
+	}
+}
+
+void Graphics::FillRegularPolygon(const Tesla::Vec2& center, int nSides, float radius, float rotationRad, Color c_int, Color c_ext, bool rainbowMode)
+{
+	assert(nSides > 2 && "What is a regular polygon with less than 3 sides?");
+	using namespace Tesla;
+	const float phiStep = twoPI / float(nSides);
+	float phi = phiStep - rotationRad;
+
+	auto CalculatePosition = [&](float phi)
+	{
+		return center + radius * Vec2(std::cosf(phi), std::sinf(phi));
+	};
+
+	Vec2 cur = CalculatePosition(-rotationRad);
+	if (rainbowMode)
+	{
+		for (int i = 0; i < nSides; i++)
+		{
+			const Vec2 next = CalculatePosition(phi);
+			FillTriangle(center, cur, next, c_int, Color::FromHSV(phi + rotationRad), Color::FromHSV(phi + rotationRad + phiStep));
+			cur = next;
+			phi += phiStep;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < nSides; i++)
+		{
+			const Vec2 next = CalculatePosition(phi);
+			FillTriangle(center, cur, next, c_int, c_ext, c_ext);
+			cur = next;
+			phi += phiStep;
+		}
 	}
 }
 
