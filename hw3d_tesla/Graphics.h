@@ -87,10 +87,8 @@ public:
 	void DrawLine(float x0, float y0, float x1, float y1, Color c);
 	void DrawLine(int x0, int y0, int x1, int y1, Color c0, Color c1);
 	void DrawLine(float x0, float y0, float x1, float y1, Color c0, Color c1);
-	void DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c);
-	void DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c);
-	void DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c0, Color c1);
-	void DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1);
+	void DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2& p1, Color c);
+	void DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2& p1, Color c0, Color c1);
 	
 	/*********************************** RECTANGLE ***************************************/
 	void DrawRect(int left, int right, int top, int bottom, Color c);
@@ -175,9 +173,9 @@ private:
 	Surface pBuffer;
 public:
 	// The actual window dimensions will be ScreenWidth * PixelSize and ScreenHeight * PixelSize
-	static constexpr unsigned int PixelSize     = 10u;
-	static constexpr unsigned int ScreenWidth   = 128u;
-	static constexpr unsigned int ScreenHeight  = 72u;
+	static constexpr unsigned int PixelSize     = 1u;
+	static constexpr unsigned int ScreenWidth   = 1280u;
+	static constexpr unsigned int ScreenHeight  = 720u;
 public:
 	// Useful global constants
 	static constexpr float ScreenWidthF         = static_cast<float>(ScreenWidth);

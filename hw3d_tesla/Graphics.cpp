@@ -759,22 +759,12 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color 
 	}
 }
 
-void Graphics::DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c)
-{
-	DrawLine(static_cast<Tesla::Vec2>(p0), static_cast<Tesla::Vec2>(p1), c);
-}
-
-void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c)
+void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2& p1, Color c)
 {
 	DrawLine(p0.x, p0.y, p1.x, p1.y, c);
 }
 
-void Graphics::DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c0, Color c1)
-{
-	DrawLine(static_cast<Tesla::Vec2>(p0), static_cast<Tesla::Vec2>(p1), c0, c1);
-}
-
-void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1)
+void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2& p1, Color c0, Color c1)
 {
 	DrawLine(p0.x, p0.y, p1.x, p1.y, c0, c1);
 }
@@ -1507,8 +1497,8 @@ void Graphics::DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c)
 	// This is a cubic SPLine passing through every point
 	using namespace Tesla;
 
-	const int nPoints = points.size();
-	if(nPoints >= 2)
+	const size_t nPoints = points.size();
+	if(nPoints >= 2u)
 	{
 		std::vector<Vec2> p;
 
@@ -1522,7 +1512,7 @@ void Graphics::DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c)
 		}
 		p.push_back(last);
 
-		const int nSegments = nPoints - 1;
+		const int nSegments = int(nPoints - 1);
 		for (int i = 0; i < nSegments; i++)
 		{
 			static constexpr int nSubd = 30;

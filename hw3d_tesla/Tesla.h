@@ -180,11 +180,6 @@ namespace Tesla
 	{
 	public:
 		Generic_Vec2() = default;
-		//Generic_Vec2(T x, T y)
-		//	:
-		//	x(x),
-		//	y(y)
-		//{}
 		constexpr Generic_Vec2(T x, T y)
 			:
 			x(x),
