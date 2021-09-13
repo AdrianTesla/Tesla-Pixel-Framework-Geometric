@@ -150,14 +150,16 @@ public:
 	void DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c);
 public:
 	std::string GetFrameStatistics() const noexcept;
+	std::string GetWindowInfo() const noexcept;
+	float GetFrameRate() const noexcept;
 private:
 	void UpdateFrameStatistics() noexcept;
 private:
 	bool imGuiEnabled = true;
 	bool clip = true;
 	UINT syncInterval = 1u;
-	std::string statsInfo;
-	std::string title = "Adrian Tesla DirectX Framework";
+	std::string statsInfo = "";
+	float frameRate = 0.0f;
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device>           pDevice;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext>    pContext;
@@ -187,5 +189,4 @@ public:
 	static constexpr Tesla::Vec2 ScreenCenterF  = { ScreenCenterXf,ScreenCenterYf };
 	static constexpr Tesla::Vei2 ScreenCenter   = { static_cast<int>(ScreenCenterX),static_cast<int>(ScreenCenterY) };
 	static constexpr float PixelSizeF           = static_cast<float>(PixelSize);
-
 };

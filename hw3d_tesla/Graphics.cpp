@@ -249,18 +249,28 @@ float4 main(float2 tc : TexCoord) : SV_Target\
 void Graphics::UpdateFrameStatistics() noexcept
 {
 	const auto ImGuiIO    = ImGui::GetIO();
-	const auto frame_rate = ImGuiIO.Framerate;
+	frameRate = ImGuiIO.Framerate;
 	std::stringstream ss;
-	ss.precision(3);
-	ss << std::fixed << 1000.0f / frame_rate;
+	ss.precision(2);
+	ss << std::fixed << 1000.0f / frameRate;
 	ss.precision(0);
-	ss << std::fixed << " ms/frame (" << frame_rate << " FPS)] (" << ScreenWidth << "x" << ScreenHeight << ")";
+	ss << std::fixed << " ms/frame (" << frameRate << " FPS)] (" << ScreenWidth << "x" << ScreenHeight << ")";
 	statsInfo = ss.str();
 }
 
 std::string Graphics::GetFrameStatistics() const noexcept
 {
 	return statsInfo;
+}
+
+std::string Graphics::GetWindowInfo() const noexcept
+{
+	return std::to_string(ScreenWidth) + " x " + std::to_string(ScreenHeight) + "    (" + std::to_string(static_cast<int>(frameRate)) + " FPS)";
+}
+
+float Graphics::GetFrameRate() const noexcept
+{
+	return frameRate;
 }
 
 void Graphics::DrawHLine(int xStart, int xEnd, int y, Color c)
@@ -326,7 +336,7 @@ void Graphics::BeginFrame(bool clear, Color clearColor)
 	ImGui::NewFrame();
 }
 
-void Graphics::EndFrame() 
+void Graphics::EndFrame()
 {
 	HRESULT hr;
 

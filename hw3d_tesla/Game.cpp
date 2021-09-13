@@ -14,6 +14,7 @@ void Game::Go()
 	UpdateModel();
 	ComposeFrame();
 	gfx.EndFrame();
+	wnd.SetTitle("Adrian Tesla Pixel Framework - " + gfx.GetWindowInfo());
 }
 
 void Game::UpdateModel()
