@@ -263,6 +263,52 @@ std::string Graphics::GetFrameStatistics() const noexcept
 	return statsInfo;
 }
 
+void Graphics::DrawHLine(int xStart, int xEnd, int y, Color c)
+{
+	assert(xStart <= xEnd && "Bad horizontal line endpoints");
+	if (clip)
+	{
+		xStart = std::max(0, xStart);
+		xEnd   = std::min(static_cast<int>(ScreenWidth - 1), xEnd);
+		if (y < 0 || y > static_cast<int>(ScreenHeight - 1))
+		{
+			return;
+		}
+	}
+	for (int x = xStart; x <= xEnd; x++)
+	{
+		PutPixel(x, y, c);
+	}
+}
+
+void Graphics::DrawVLine(int yStart, int yEnd, int x, Color c)
+{
+	assert(yStart <= yEnd && "Bad vertical line endpoints");
+	if (clip)
+	{
+		yStart = std::max(0, yStart);
+		yEnd   = std::min(static_cast<int>(ScreenHeight - 1), yEnd);
+		if (x < 0 || x > static_cast<int>(ScreenWidth - 1))
+		{
+			return;
+		}
+	}
+	for (int y = yStart; y <= yEnd; y++)
+	{
+		PutPixel(x, y, c);
+	}
+}
+
+void Graphics::DrawHLine(float xStart, float xEnd, float y, Color c)
+{
+	DrawHLine(static_cast<int>(xStart), static_cast<int>(xEnd), static_cast<int>(y), c);
+}
+
+void Graphics::DrawVLine(float yStart, float yEnd, float x, Color c)
+{
+	DrawVLine(static_cast<int>(yStart), static_cast<int>(yEnd), static_cast<int>(x), c);
+}
+
 Graphics::~Graphics()
 {
 	ImGui_ImplDX11_Shutdown();
@@ -390,9 +436,19 @@ void Graphics::PutPixel(const Tesla::Vec2& p, Color c)
 	PutPixel((int)p.x, (int)p.y, c);
 }
 
+void Graphics::PutPixel(const Tesla::Vei2& p, Color c)
+{
+	PutPixel(p.x, p.y, c);
+}
+
 void Graphics::PutPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b)
 {
 	PutPixel(x, y, Color(r, g, b));
+}
+
+void Graphics::DrawLine(int x0, int y0, int x1, int y1, Color c)
+{
+	DrawLine(static_cast<float>(x0), static_cast<float>(y0), static_cast<float>(x1), static_cast<float>(y1), c);
 }
 
 void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c)
@@ -533,6 +589,11 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c)
 	{
 		Draw(x0, y0, x1, y1);
 	}
+}
+
+void Graphics::DrawLine(int x0, int y0, int x1, int y1, Color c0, Color c1)
+{
+	DrawLine(static_cast<float>(x0), static_cast<float>(y0), static_cast<float>(x1), static_cast<float>(y1), c0, c1);
 }
 
 void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color c1)
@@ -698,9 +759,19 @@ void Graphics::DrawLine(float x0, float y0, float x1, float y1, Color c0, Color 
 	}
 }
 
+void Graphics::DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c)
+{
+	DrawLine(static_cast<Tesla::Vec2>(p0), static_cast<Tesla::Vec2>(p1), c);
+}
+
 void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c)
 {
 	DrawLine(p0.x, p0.y, p1.x, p1.y, c);
+}
+
+void Graphics::DrawLine(const Tesla::Vei2& p0, const Tesla::Vei2 p1, Color c0, Color c1)
+{
+	DrawLine(static_cast<Tesla::Vec2>(p0), static_cast<Tesla::Vec2>(p1), c0, c1);
 }
 
 void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, Color c1)
@@ -710,12 +781,22 @@ void Graphics::DrawLine(const Tesla::Vec2& p0, const Tesla::Vec2 p1, Color c0, C
 
 void Graphics::DrawRect(float left, float right, float top, float bottom, Color c)
 {
-	assert(left <= right && "Left of rect should be less than Right of rect");
-	assert(top <= bottom && "Top of rect should be less than Bottom of rect");
-	DrawLine(left , top   , right, top   , c);
-	DrawLine(right, top   , right, bottom, c);
-	DrawLine(right, bottom, left , bottom, c);
-	DrawLine(left , bottom, left , top   , c);
+	DrawRect(static_cast<int>(left), static_cast<int>(right), static_cast<int>(top), static_cast<int>(bottom), c);
+}
+
+void Graphics::DrawRect(int left, int right, int top, int bottom, Color c)
+{
+	assert(left <= right && "Bad left and right drawing the int rect");
+	assert(top <= bottom && "Bad top and bottom drawing the int rect");
+	DrawHLine(left, right, top, c);
+	DrawHLine(left, right, bottom, c);
+	if (bottom - top > 1)
+	{
+		top++;
+		bottom--;
+		DrawVLine(top, bottom, left,  c);
+		DrawVLine(top, bottom, right, c);
+	}
 }
 
 void Graphics::DrawRect(const Tesla::Vec2& topLeft, float width, float height, Color c)
@@ -723,21 +804,50 @@ void Graphics::DrawRect(const Tesla::Vec2& topLeft, float width, float height, C
 	DrawRectDim(topLeft.x, topLeft.y, width, height, c);
 }
 
+void Graphics::DrawRect(const Tesla::Vei2& topLeft, int width, int height, Color c)
+{
+	DrawRectDim(topLeft.x, topLeft.y, width, height, c);
+}
+
 void Graphics::DrawRectDim(float topLeftX, float topLeftY, float width, float height, Color c)
 {
-	DrawRect(topLeftX, topLeftX + width, topLeftY, topLeftY + height, c);
+	DrawRectDim(static_cast<int>(topLeftX), static_cast<int>(topLeftY), static_cast<int>(width), static_cast<int>(height), c);
+}
+
+void Graphics::DrawRectDim(int topLeftX, int topLeftY, int width, int height, Color c)
+{
+	DrawRect(topLeftX, topLeftX + width - 1, topLeftY, topLeftY + height - 1, c);
+}
+
+void Graphics::DrawRectDim(const Tesla::Vec2& topLeft, float width, float height, Color c)
+{
+	DrawRectDim(topLeft.x, topLeft.y, width, height, c);
+}
+
+void Graphics::DrawRectDim(const Tesla::Vei2& topLeft, int width, int height, Color c)
+{
+	DrawRectDim(topLeft.x, topLeft.y, width, height, c);
 }
 
 void Graphics::FillRect(float left, float right, float top, float bottom, Color c)
 {
-	const int xStart = std::max((int)left, 0);
-	const int xEnd   = std::min((int)right, (int)ScreenWidth - 1);
-	const int yStart = std::max((int)top, 0);
-	const int yEnd   = std::min((int)bottom, (int)ScreenHeight - 1);
+	FillRect(static_cast<int>(left), static_cast<int>(right), static_cast<int>(top), static_cast<int>(bottom), c);
+}
 
-	for (int y = yStart; y <= yEnd; y++)
+void Graphics::FillRect(int left, int right, int top, int bottom, Color c)
+{
+	assert(left <= right);
+	assert(top <= bottom);
+	if (clip)
 	{
-		for (int x = xStart; x <= xEnd; x++)
+		left   = std::max(left, 0);
+		top    = std::max(top , 0);
+		right  = std::min(right , static_cast<int>(ScreenWidth  - 1));
+		bottom = std::min(bottom, static_cast<int>(ScreenHeight - 1));
+	}
+	for (int y = top; y <= bottom; y++)
+	{
+		for (int x = left; x <= right; x++)
 		{
 			PutPixel(x, y, c);
 		}
@@ -746,12 +856,32 @@ void Graphics::FillRect(float left, float right, float top, float bottom, Color 
 
 void Graphics::FillRect(const Tesla::Vec2& topLeft, float width, float height, Color c)
 {
+	FillRectDim(static_cast<int>(topLeft.x), static_cast<int>(topLeft.y), static_cast<int>(width), static_cast<int>(height), c);
+}
+
+void Graphics::FillRect(const Tesla::Vei2& topLeft, int width, int height, Color c)
+{
 	FillRectDim(topLeft.x, topLeft.y, width, height, c);
 }
 
 void Graphics::FillRectDim(float topLeftX, float topLeftY, float width, float height, Color c)
 {
-	FillRect(topLeftX, topLeftX + width, topLeftY, topLeftY + height, c);
+	FillRectDim(static_cast<int>(topLeftX), static_cast<int>(topLeftY), static_cast<int>(width), static_cast<int>(height), c);
+}
+
+void Graphics::FillRectDim(int topLeftX, int topLeftY, int width, int height, Color c)
+{
+	FillRect(topLeftX, topLeftX + width - 1, topLeftY, topLeftY + height - 1, c);
+}
+
+void Graphics::FillRectDim(const Tesla::Vec2& topLeft, float width, float height, Color c)
+{
+	FillRectDim(static_cast<int>(topLeft.x), static_cast<int>(topLeft.y), static_cast<int>(width), static_cast<int>(height), c);
+}
+
+void Graphics::FillRectDim(const Tesla::Vei2& topLeft, int width, int height, Color c)
+{
+	FillRectDim(topLeft.x, topLeft.y, width, height, c);
 }
 
 void Graphics::DrawRegularPolygon(float x, float y, int nSides, float radius, float rotationRad, Color c)
@@ -1403,45 +1533,6 @@ void Graphics::DrawSPLine(const std::vector<Tesla::Vec2>& points, Color c)
 			{
 				const float b0 = -t * sq(1.0f - t);
 				const float b1 = (t - 1.0f) * (3.0f * sq(t) - 2.0f * t - 2);
-				const float b2 = -3.0f * cube(t) + 4.0f * sq(t) + t;
-				const float b3 = cube(t) - sq(t);
-
-				const Vec2 next = 0.5f * (p[i] * b0 + p[i + 1ui64] * b1 + p[i + 2ui64] * b2 + p[i + 3ui64] * b3);
-
-				DrawLine(cur, next, c);
-
-				t += dt;
-				cur = next;
-			}
-		}
-	}
-}
-
-void Graphics::DrawClosedSPline(const std::vector<Tesla::Vec2>& points, Color c)
-{
-	// HIGHLY INEFFICIENT, WE HAVE TO IMPROVE.
-	// This is a cubic SPLine passing through every point in points and closing
-	using namespace Tesla;
-
-	const int nPoints = points.size();
-	if(nPoints >= 2)
-	{
-		std::vector<Vec2> p;
-
-		const Vec2 first = points[0ui64];
-		const Vec2 last  = points[nPoints - 1ui64];
-
-		const int nSegments = nPoints - 1;
-		for (int i = 0; i < nSegments; i++)
-		{
-			static constexpr int nSubd = 50;
-			float t = 0.0f;
-			const float dt = 1.0f / static_cast<float>(nSubd);
-			Vec2 cur = p[1ui64 + i];
-			for (int j = 0; j <= nSubd; j++)
-			{
-				const float b0 = -cube(t) + 2.0f * sq(t) - t;
-				const float b1 = 3.0f * cube(t)- 5.0f * sq(t) + 2.0f;
 				const float b2 = -3.0f * cube(t) + 4.0f * sq(t) + t;
 				const float b3 = cube(t) - sq(t);
 
