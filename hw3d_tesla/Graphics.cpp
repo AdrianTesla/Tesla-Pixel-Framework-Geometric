@@ -265,7 +265,7 @@ std::string Graphics::GetFrameStatistics() const noexcept
 
 std::string Graphics::GetWindowInfo() const noexcept
 {
-	return std::to_string(ScreenWidth) + " x " + std::to_string(ScreenHeight) + "    (" + std::to_string(static_cast<int>(frameRate)) + " FPS)";
+	return std::to_string(ScreenWidth) + " x " + std::to_string(ScreenHeight) + "    (" + std::to_string(static_cast<int>(frameRate + 0.5f)) + " FPS)";
 }
 
 float Graphics::GetFrameRate() const noexcept
